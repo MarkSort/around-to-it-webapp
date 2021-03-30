@@ -54,6 +54,11 @@ a {
   margin-top: 0;
 }
 
+#delete {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+}
+
 #a-round-to-it {
   display: block;
   position: fixed;

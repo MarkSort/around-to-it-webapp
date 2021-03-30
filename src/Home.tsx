@@ -8,6 +8,7 @@ export default class Home extends React.Component<HomeProps, HomeState> {
 
     const state = Home.getDerivedStateFromProps(props, {
       moving: false,
+      deleting: false,
       taskSchedules: [],
       taskSchedulesByType: {},
     })
@@ -24,7 +25,7 @@ export default class Home extends React.Component<HomeProps, HomeState> {
       [TaskScheduleType.Daily.toString()]: [],
       [TaskScheduleType.Once.toString()]: [],
     }
-    
+
     props.taskSchedules.forEach(taskSchedule => {
       if (!taskSchedule.active) {
         return
@@ -35,6 +36,7 @@ export default class Home extends React.Component<HomeProps, HomeState> {
 
     return {
       moving: state.moving,
+      deleting: state.deleting,
       taskSchedules: props.taskSchedules,
       taskSchedulesByType,
     }
@@ -87,11 +89,26 @@ export default class Home extends React.Component<HomeProps, HomeState> {
           task = <a href="#" onClick={this.getClickHandler(taskSchedule)} key={taskSchedule.id}>{taskSchedule.title}</a>
         } else {
           afterSelected = true
+
           let actions
           if (this.state.moving) {
             actions = (
               <div>
                 <a href="#" onClick={this.handleCancelMove.bind(this)}>cancel move</a>
+              </div>
+            )
+          } else if (this.state.deleting) {
+            actions = (
+              <div>
+                <div>
+                  when task schedules are deleted, they will not reoccur in the future.
+                  <br /><br />
+                  delete this task schedule?
+                </div>
+                <div id="delete">
+                  <a href="#" onClick={this.handleDelete.bind(this)}>delete</a>
+                  <a href="#" onClick={this.handleCancelDelete.bind(this)}>keep</a>
+                </div>
               </div>
             )
           } else {
@@ -101,11 +118,12 @@ export default class Home extends React.Component<HomeProps, HomeState> {
                 <div id="moreActions">
                   <a href="#" onClick={this.handleStartMove.bind(this)}>move</a>
                   <a href="#" onClick={this.handleEdit.bind(this)}>edit</a>
-                  <a href="#" onClick={this.handleDelete.bind(this)}>delete</a>
+                  <a href="#" onClick={this.handleStartDelete.bind(this)}>delete</a>
                 </div>
               </div>
             )
           }
+
           task = (
             <div id="selectedContainer" key={taskSchedule.id}>
               <a id="selected" href="#" onClick={this.getClickHandler(taskSchedule)}>{taskSchedule.title}</a>
@@ -123,9 +141,6 @@ export default class Home extends React.Component<HomeProps, HomeState> {
         }
       })
     })
-
-
-
 
     return (
       <div id="tasks">
@@ -145,6 +160,7 @@ export default class Home extends React.Component<HomeProps, HomeState> {
       this.setState({
         selected: undefined,
         moving: false,
+        deleting: false,
       })
       return
     }
@@ -152,6 +168,7 @@ export default class Home extends React.Component<HomeProps, HomeState> {
     this.setState({
       selected: schedule,
       moving: false,
+      deleting: false,
     })
   }
 
@@ -206,6 +223,21 @@ export default class Home extends React.Component<HomeProps, HomeState> {
     this.props.goToEditTaskSchedule(this.state.selected)
   }
 
+  handleStartDelete(event: React.MouseEvent<HTMLAnchorElement>): void {
+    event.preventDefault()
+
+    this.setState({deleting: true})
+  }
+
+  handleCancelDelete(event: React.MouseEvent<HTMLAnchorElement>): void {
+    event.preventDefault()
+
+    this.setState({
+      deleting: false,
+      selected: undefined,
+    })
+  }
+
   async handleDelete(event: React.MouseEvent<HTMLAnchorElement>): Promise<void> {
     event.preventDefault()
 
@@ -216,6 +248,7 @@ export default class Home extends React.Component<HomeProps, HomeState> {
 
     this.setState({
       selected: undefined,
+      deleting: false,
     })
   }
 }
@@ -234,6 +267,7 @@ type HomeProps = {
 type HomeState = {
   selected?: TaskSchedule
   moving: boolean
+  deleting: boolean
   taskSchedulesByType: {[s: string]: TaskSchedule[]}
   taskSchedules: TaskSchedule[]
 }
