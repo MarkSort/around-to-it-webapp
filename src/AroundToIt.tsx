@@ -21,6 +21,8 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
 
       screen: AtiScreen.Home,
     }
+
+    this.setMidnightUpdateTimeout()
   }
 
   render(): ReactNode {
@@ -192,6 +194,33 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
     const day = dayInt < 10 ? `0${dayInt}` : `${dayInt}`
   
     return `${year}-${month}-${day}`
+  }
+
+  setMidnightUpdateTimeout() {
+
+    const midnight = new Date()
+    midnight.setDate(midnight.getDate() + 1)
+    midnight.setHours(0)
+    midnight.setMinutes(0)
+    midnight.setSeconds(0)
+    midnight.setMilliseconds(0)
+
+    const now = new Date()
+
+    const msUntilMidnight = midnight.valueOf() - now.valueOf()
+
+    console.log(`setting midnight update timeout for ${midnight} in ${msUntilMidnight} ms`)
+
+    setTimeout(this.updateDateStr.bind(this), msUntilMidnight)
+  }
+
+  async updateDateStr() {
+    const now = new Date()
+    console.log(`midnight update fired at ${now.toString()}`)
+
+    await this.updateStateFromDb()
+
+    this.setMidnightUpdateTimeout()
   }
 }
 
