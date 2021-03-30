@@ -2,6 +2,8 @@ export type TaskSchedule = {
   id: number
   title: string
   type: TaskScheduleType
+  order: number
+  typeAndOrder: string
   active: boolean
 }
 

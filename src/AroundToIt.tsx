@@ -14,6 +14,8 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
     this.updateStateFromDb()
 
     this.state = {
+      loading: true,
+
       taskSchedules: [],
       todayDateStr: '',
 
@@ -24,6 +26,8 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
   render(): ReactNode {
     let screen
 
+    if (this.state.loading) return <div>loading...</div>
+
     if (this.state.screen === AtiScreen.Home) {
       screen = <Home
                   taskSchedules={this.state.taskSchedules}
@@ -33,6 +37,7 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
                   
                   deleteSchedule={this.deleteSchedule.bind(this)}
                   addTaskScheduleStatus={this.addTaskScheduleStatus.bind(this)}
+                  moveTaskSchedule={this.moveTaskSchedule.bind(this)}
                 />
 
     } else if (this.state.screen === AtiScreen.NewTaskSchedule) {
@@ -97,14 +102,15 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
     const dbTaskSchedules = await this.props.db.getAllTaskSchedules()
     const taskSchedules = await Promise.all(dbTaskSchedules.map(async (dbTaskSchedule) => {
       if (dbTaskSchedule.id == null) throw new Error("DBTaskSchedule missing id")
+      if (dbTaskSchedule.order == null) throw new Error("DBTaskSchedule missing order")
+      if (dbTaskSchedule.typeAndOrder == null) throw new Error("DBTaskSchedule missing typeAndOrder")
 
-      let active = true
+      let active
       if (dbTaskSchedule.type == TaskScheduleType.Once) {
         active = await this.props.db.getTaskScheduleStatus(dbTaskSchedule.id) == null
       } else if (dbTaskSchedule.type == TaskScheduleType.Daily) {
         active = await this.props.db.getTodayTaskScheduleStatus(dbTaskSchedule.id) == null
       } else {
-        // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
         active = false
       }
 
@@ -112,18 +118,39 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
         id: dbTaskSchedule.id,
         title: dbTaskSchedule.title,
         type: dbTaskSchedule.type,
+        order: dbTaskSchedule.order,
+        typeAndOrder: dbTaskSchedule.typeAndOrder,
         active, 
       }
     }))
 
     this.setState({
+      loading: false,
       taskSchedules,
       todayDateStr,
     })
   }
 
   async addSchedule(title: string, type: TaskScheduleType): Promise<void> {
-    await this.props.db.addTaskSchedule(title, type)
+    if (title === "//TEST//") {
+      await this.props.db.addTaskSchedule("daily0", TaskScheduleType.Daily)
+      await this.props.db.addTaskSchedule("daily1", TaskScheduleType.Daily)
+      await this.props.db.addTaskSchedule("daily2", TaskScheduleType.Daily)
+      await this.props.db.addTaskSchedule("daily3", TaskScheduleType.Daily)
+      await this.props.db.addTaskSchedule("daily4", TaskScheduleType.Daily)
+      await this.props.db.addTaskSchedule("once0", TaskScheduleType.Once)
+      await this.props.db.addTaskSchedule("once1", TaskScheduleType.Once)
+      await this.props.db.addTaskSchedule("once2", TaskScheduleType.Once)
+      await this.props.db.addTaskSchedule("once3", TaskScheduleType.Once)
+      await this.props.db.addTaskSchedule("once4", TaskScheduleType.Once)
+    } else {
+      await this.props.db.addTaskSchedule(title, type)
+    }
+    await this.updateStateFromDb()
+  }
+
+  async moveTaskSchedule(type: TaskScheduleType, oldOrder: number, newOrder: number): Promise<void> {
+    await this.props.db.moveTaskSchedule(type, oldOrder, newOrder)
     await this.updateStateFromDb()
   }
 
@@ -173,6 +200,7 @@ type AroundToItProps = {
 }
 
 type AroundToItState = {
+  loading: boolean
   taskSchedules: TaskSchedule[]
   todayDateStr: string
 

@@ -5,8 +5,38 @@ import { TaskSchedule, TaskScheduleStatusString, TaskScheduleType } from "./lib"
 export default class Home extends React.Component<HomeProps, HomeState> {
   constructor(props: HomeProps) {
     super(props)
-    this.state = {
+
+    const state = Home.getDerivedStateFromProps(props, {
       moving: false,
+      taskSchedules: [],
+      taskSchedulesByType: {},
+    })
+
+    if (state == null) throw new Error('got null initial Home state')
+
+    this.state = state
+  }
+
+  static getDerivedStateFromProps(props: HomeProps, state: HomeState): HomeState | null {
+    if (props.taskSchedules === state.taskSchedules) return null
+
+    const taskSchedulesByType: {[t: string]: TaskSchedule[]} = {
+      [TaskScheduleType.Daily.toString()]: [],
+      [TaskScheduleType.Once.toString()]: [],
+    }
+    
+    props.taskSchedules.forEach(taskSchedule => {
+      if (!taskSchedule.active) {
+        return
+      }
+      const typeString = taskSchedule.type.toString()
+      taskSchedulesByType[typeString].push(taskSchedule)
+    })
+
+    return {
+      moving: state.moving,
+      taskSchedules: props.taskSchedules,
+      taskSchedulesByType,
     }
   }
 
@@ -15,64 +45,91 @@ export default class Home extends React.Component<HomeProps, HomeState> {
       return <div id="no-schedules">at the bottom right, there&apos;s A Round To-It you can use to get started</div>
     }
 
-    const dailies: ReactNode[] = []
-    const onces: ReactNode[] = []
+    const taskScheduleTypes = [TaskScheduleType.Daily, TaskScheduleType.Once]
+    const typeLabels = {
+      [TaskScheduleType.Daily.toString()]: { heading: 'daily', empty: 'all done for the day!'},
+      [TaskScheduleType.Once.toString()]: { heading: 'once', empty: 'no more one time tasks!'},
+    }
 
-    this.props.taskSchedules.forEach((taskSchedule) => {
-      if (!taskSchedule.active) return
+    const reactNodes: ReactNode[] = []
 
-      let task
-      if (this.state.selected?.id != taskSchedule.id) {
-        task = <a href="#" onClick={this.getClickHandler(taskSchedule)} key={taskSchedule.id}>{taskSchedule.title}</a>
-      } else {
-        let actions
-        if (this.state.moving) {
-          actions = (
-            <div>
-              <a href="#" onClick={this.handleCancelMove.bind(this)}>cancel move</a>
-            </div>
-          )
+    taskScheduleTypes.forEach((type) => {
+      const typeString = type.toString()
+
+      reactNodes.push(<h2 key={`h2-${typeString}`}>{typeLabels[typeString].heading}</h2>)
+
+      if (this.state.taskSchedulesByType[typeString].length === 0) {
+        reactNodes.push(<div key={`empty-${typeString}`}>{typeLabels[typeString].empty}</div>)
+      }
+
+      let afterSelected = false
+      let lastOrder = 0
+
+      this.state.taskSchedulesByType[typeString].forEach((taskSchedule) => {
+        if (!taskSchedule.active) return
+
+        lastOrder = taskSchedule.order
+
+        let moveHere
+        if (this.state.moving && this.state.selected?.type === type && this.state.selected.id !== taskSchedule.id) {
+          const moveOrder = taskSchedule.order
+          moveHere =
+            <a href="#"
+                onClick={this.getMoveHandler(moveOrder)}
+                key={`move-${typeString}-${moveOrder}`}
+                className="move">
+              move here
+            </a>
+        }
+
+        let task
+        if (this.state.selected?.id != taskSchedule.id) {
+          task = <a href="#" onClick={this.getClickHandler(taskSchedule)} key={taskSchedule.id}>{taskSchedule.title}</a>
         } else {
-          actions = (
-            <div>
-              <a href="#" onClick={this.handleMarkComplete.bind(this)}>mark complete</a>
-              <div id="moreActions">
-                <a href="#" onClick={this.handleStartMove.bind(this)}>move</a>
-                <a href="#" onClick={this.handleEdit.bind(this)}>edit</a>
-                <a href="#" onClick={this.handleDelete.bind(this)}>delete</a>
+          afterSelected = true
+          let actions
+          if (this.state.moving) {
+            actions = (
+              <div>
+                <a href="#" onClick={this.handleCancelMove.bind(this)}>cancel move</a>
               </div>
+            )
+          } else {
+            actions = (
+              <div>
+                <a href="#" onClick={this.handleMarkComplete.bind(this)}>mark complete</a>
+                <div id="moreActions">
+                  <a href="#" onClick={this.handleStartMove.bind(this)}>move</a>
+                  <a href="#" onClick={this.handleEdit.bind(this)}>edit</a>
+                  <a href="#" onClick={this.handleDelete.bind(this)}>delete</a>
+                </div>
+              </div>
+            )
+          }
+          task = (
+            <div id="selectedContainer" key={taskSchedule.id}>
+              <a id="selected" href="#" onClick={this.getClickHandler(taskSchedule)}>{taskSchedule.title}</a>
+              {actions}
             </div>
           )
+        }
 
+        if (moveHere != null && !afterSelected) {
+          reactNodes.push(moveHere)
         }
-        task = (
-          <div id="selectedContainer" key={taskSchedule.id}>
-            <a id="selected" href="#" onClick={this.getClickHandler(taskSchedule)}>{taskSchedule.title}</a>
-            {actions}
-          </div>
-        )
-      }
-
-      if (taskSchedule.type === TaskScheduleType.Daily) {
-        if (this.state.moving && this.state.selected?.type === taskSchedule.type && this.state.selected?.id !== taskSchedule.id) {
-          dailies.push(<div key={`move-before-${taskSchedule.id}`}>move here</div>)
+        reactNodes.push(task)
+        if (moveHere != null && afterSelected) {
+          reactNodes.push(moveHere)
         }
-        dailies.push(task)
-      } else {
-        if (this.state.moving && this.state.selected?.type === taskSchedule.type && this.state.selected?.id !== taskSchedule.id) {
-          onces.push(<div key={`move-before-${taskSchedule.id}`}>move here</div>)
-        }
-        onces.push(task)
-      }
+      })
     })
+
+
 
 
     return (
       <div id="tasks">
-        <h2>daily</h2>
-        {dailies.length > 0 ? dailies : "all done for the day!"}
-        <h2>once</h2>
-        {onces.length > 0 ? onces : "no more one time tasks!"}
+        {reactNodes}
       </div>
     )
   }
@@ -125,7 +182,23 @@ export default class Home extends React.Component<HomeProps, HomeState> {
     })
   }
 
- handleEdit(event: React.MouseEvent<HTMLAnchorElement>): void {
+  getMoveHandler(newOrder: number): (event: React.MouseEvent<HTMLAnchorElement>) => void {
+    return (event: React.MouseEvent<HTMLAnchorElement>) => this.handleMove(event, newOrder)
+  }
+  async handleMove(event: React.MouseEvent<HTMLAnchorElement>, newOrder: number): Promise<void> {
+    event.preventDefault()
+
+    if (!this.state.selected) throw new Error('handleMove called without this.state.selected set')
+
+    await this.props.moveTaskSchedule(this.state.selected.type, this.state.selected.order, newOrder)
+
+    this.setState({
+      moving: false,
+      selected: undefined,
+    })
+  }
+
+  handleEdit(event: React.MouseEvent<HTMLAnchorElement>): void {
     event.preventDefault()
 
     if (this.state.selected == null) return
@@ -153,12 +226,14 @@ type HomeProps = {
 
   goToEditTaskSchedule: (id: TaskSchedule) => void
 
-  deleteSchedule: (id: number) => Promise<void>
+  deleteSchedule(id: number): Promise<void>
   addTaskScheduleStatus(id: number, status: TaskScheduleStatusString): Promise<void>
+  moveTaskSchedule(type: TaskScheduleType, oldOrder: number, newOrder: number): Promise<void>
 }
 
 type HomeState = {
   selected?: TaskSchedule
   moving: boolean
-
+  taskSchedulesByType: {[s: string]: TaskSchedule[]}
+  taskSchedules: TaskSchedule[]
 }

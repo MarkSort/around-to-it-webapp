@@ -1,4 +1,4 @@
-import { DBSchema, IDBPDatabase, openDB } from 'idb/with-async-ittr'
+import { DBSchema, deleteDB, IDBPDatabase, openDB } from 'idb/with-async-ittr'
 import { TaskScheduleType, TaskScheduleStatusString } from './lib'
 
 export default class Db {
@@ -20,6 +20,7 @@ export default class Db {
           autoIncrement: true,
         })
         taskScheduleStore.createIndex('by-type', 'type')
+        taskScheduleStore.createIndex('by-typeAndOrder', 'typeAndOrder', {unique: true})
 
         const taskScheduleStatusStore = db.createObjectStore(TaskScheduleStatusesStoreName, {
           autoIncrement: true,
@@ -42,16 +43,136 @@ export default class Db {
     return new Db(db)
   }
 
-  getAllTaskSchedules(): Promise<DBTaskSchedule[]> {
-    return this.db.getAll(TaskSchedulesStoreName)
+  static async deleteDatabase(): Promise<void> {
+    await deleteDB('ati')
+  }
+
+  async getAllTaskSchedules(): Promise<DBTaskSchedule[]> {
+    const taskSchedules = []
+
+    let cursor = await this.db.transaction(TaskSchedulesStoreName, 'readwrite').store.index('by-typeAndOrder').openCursor()
+    while (cursor != null) {
+      taskSchedules.push(cursor.value)
+      cursor = await cursor.continue()
+    }
+
+    return taskSchedules
   }
 
   async addTaskSchedule(title: string, type: TaskScheduleType): Promise<void> {
+    const range = IDBKeyRange.bound(
+      `${type} 0`,
+      `${type + 1} 0`,
+      false,
+      true,
+    )
+    const store = this.db.transaction(TaskSchedulesStoreName, 'readwrite').store
+    const cursor = await store.index('by-typeAndOrder').openCursor(range, 'prev')
+
+    let order
+    if (cursor == null) {
+      order = 0
+    } else if (cursor.value.order != null) {
+      order = cursor.value.order + 1
+    }
+
+    if (order == null) throw new Error('could not determine order for new TaskSchedule')
+
     const dbTaskSchedule = {
       title,
       type,
+      order,
+      typeAndOrder: `${type} ${order}`
     }
-    await this.db.add(TaskSchedulesStoreName, dbTaskSchedule)
+    await store.add(dbTaskSchedule)
+  }
+
+  async moveTaskSchedule(type: TaskScheduleType, oldOrder: number, newOrder: number): Promise<void> {
+    if (oldOrder === newOrder) throw new Error('oldOrder === newOrder')
+
+    const tempOrderRange = IDBKeyRange.bound(
+      `${type} 0`,
+      `${type + 1} 0`,
+      false,
+      true,
+    )
+    const store = this.db.transaction(TaskSchedulesStoreName, 'readwrite').store
+    const lastTaskSchedule = await store.index('by-typeAndOrder').openCursor(tempOrderRange, 'prev')
+
+    if (lastTaskSchedule == null) throw new Error('no TaskSchedule to move?')
+    if (lastTaskSchedule.value.order == null) throw new Error('while moving, TaskSchedule is missing order')
+
+    const lastOrder = lastTaskSchedule.value.order
+
+    const taskSchedule = await store.index('by-typeAndOrder').get(`${type} ${oldOrder}`)
+    if (taskSchedule == null) throw new Error('could not find TaskSchedule to move')
+
+    if (oldOrder !== lastOrder) {
+      taskSchedule.order = lastOrder + 1
+      taskSchedule.typeAndOrder = `${type} ${lastOrder + 1}`
+      await store.put(taskSchedule)
+    }
+
+    let direction: IDBCursorDirection
+    let orderChange: number
+    let otherTaskSchedulesRange
+    if (oldOrder < newOrder) {
+      /*
+        goal 1 to 3      temp        decrement       done   
+          /----v       /-------v  old!open to new!open      
+        a b c d e    a   c d e b    a c d   e b    a c d b e
+        0 1 2 3 4    0   2 3 4 5    0 1 2   4 5    0 1 2 3 4
+        n m d d n    n   d d n m    n d d   n m    n d d m n
+      */
+      direction = 'next'
+      orderChange = -1
+      otherTaskSchedulesRange = IDBKeyRange.bound(
+        `${type} ${oldOrder}`,
+        `${type} ${newOrder}`,
+      )
+    } else {
+      /*
+        goal 3 to 1      temp        increment       done   
+         v----\            /---v  new!open to old!open      
+        a b c d e    a b c   e d    a   b c e d    a d b c e
+        0 1 2 3 4    0 1 2   4 5    0   2 3 4 5    0 1 2 3 4
+        n i i m n    n i i   n m    n   i i n m    n m i i n
+      */
+
+      /*
+        goal 4 to 1              increment       done   
+         v------\          new!open to old!open         
+        a b c d e               a   b c d b    a e b c d
+        0 1 2 3 4               0   2 3 4 5    0 1 2 3 4
+        n i i i m               n   i i i mi*  n m i i i
+        * moved task incidentally incremented
+      */
+      direction = 'prev'
+      orderChange = 1
+      otherTaskSchedulesRange = IDBKeyRange.bound(
+        `${type} ${newOrder}`,
+        `${type} ${oldOrder}`,
+      )
+    }
+
+    const taskSchedulesToUpdate = []
+    let taskScheduleToUpdateCursor = await store.index('by-typeAndOrder').openCursor(otherTaskSchedulesRange, direction)
+    while (taskScheduleToUpdateCursor != null) {
+      taskSchedulesToUpdate.push(taskScheduleToUpdateCursor.value)
+      taskScheduleToUpdateCursor = await taskScheduleToUpdateCursor.continue()
+    }
+
+    for (let i = 0; i < taskSchedulesToUpdate.length; i++) {
+      const taskScheduleToUpdate = taskSchedulesToUpdate[i]
+      if (taskScheduleToUpdate.order == null) throw new Error('taskSchedule missing order')
+      taskScheduleToUpdate.order += orderChange
+      taskScheduleToUpdate.typeAndOrder = `${type} ${taskScheduleToUpdate.order}`
+      await store.put(taskScheduleToUpdate)
+    }
+
+    taskSchedule.order = newOrder
+    taskSchedule.typeAndOrder = `${type} ${newOrder}`
+    await store.put(taskSchedule)
   }
 
   async updateTaskSchedule(taskSchedule: DBTaskSchedule): Promise<void> {
@@ -59,7 +180,7 @@ export default class Db {
   }
 
   async deleteTaskSchedule(id: number): Promise<void> {
-    console.log(`db delete ${id}`)
+    // TODO update order
     await this.db.delete(TaskSchedulesStoreName, id)
   }
 
@@ -106,7 +227,10 @@ interface AtiDBSchema extends DBSchema {
   [TaskSchedulesStoreName]: {
     key: number
     value: DBTaskSchedule
-    indexes: { 'by-type': TaskScheduleType }
+    indexes: {
+      'by-type': TaskScheduleType
+      'by-typeAndOrder': string
+    }
   },
   [TaskScheduleStatusesStoreName]: {
     key: number
@@ -123,6 +247,8 @@ type DBTaskSchedule = {
   id?: number
   title: string
   type: TaskScheduleType
+  order?: number
+  typeAndOrder?: string
 }
 
 type DBTaskScheduleStatus = {
