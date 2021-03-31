@@ -44,7 +44,12 @@ export default class Home extends React.Component<HomeProps, HomeState> {
 
   render(): ReactNode {
     if (this.props.taskSchedules.length === 0) {
-      return <div id="no-schedules">at the bottom right, there&apos;s A Round To-It you can use to get started</div>
+      return (
+        <div id="no-schedules">
+          <h1>Around To It</h1>
+          at the bottom right, there&apos;s A Round To-It you can use to get started
+        </div>
+      )
     }
 
     const taskScheduleTypes = [TaskScheduleType.Daily, TaskScheduleType.Once]

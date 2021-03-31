@@ -11,10 +11,10 @@ export default class Menu extends React.Component<MenuProps, MenuState> {
   render(): ReactNode {
     return (
       <div id="menu">
+          <h1>Around To It</h1>
           <a href="#" onClick={this.goToHome.bind(this)} >view current tasks</a>
           <a href="#" onClick={this.goToNewTaskSchedule.bind(this)} >new task schedule</a>
           <a href="#" onClick={this.goToAllTaskSchedules.bind(this)} >view all task schedules</a>
-
       </div>
     )
   }

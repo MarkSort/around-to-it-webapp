@@ -91,7 +91,6 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
 
     return (
       <div id="around-to-it">
-        <h1>Around To It</h1>
         {screen}
         {menu}
         <a href="#" id="a-round-to-it" onClick={this.toggleMenu.bind(this)}>
