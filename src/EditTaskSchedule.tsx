@@ -1,7 +1,5 @@
 import React, { ReactNode } from "react"
 
-import { TaskSchedule } from "./lib"
-
 export default class EditTaskSchedule extends React.Component<EditTaskScheduleProps, EditTaskScheduleState> {
   constructor(props: EditTaskScheduleProps) {
     super(props)
