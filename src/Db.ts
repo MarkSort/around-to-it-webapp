@@ -180,8 +180,9 @@ export default class Db {
   }
 
   async deleteTaskSchedule(id: number): Promise<void> {
-    // TODO update order
+    // TODO update order - maybe?
     await this.db.delete(TaskSchedulesStoreName, id)
+    // TODO delete TaskScheduleStatuses
   }
 
   async addTaskScheduleStatus(id: number, status: TaskScheduleStatusString): Promise<void> {
