@@ -6,6 +6,7 @@ import EditTaskSchedule from "./EditTaskSchedule"
 
 import { TaskSchedule, TaskScheduleType, TaskScheduleStatusString } from "./lib"
 import Db from "./Db"
+import Menu from "./Menu"
 
 export default class AroundToIt extends React.Component<AroundToItProps, AroundToItState> {
   constructor(props: AroundToItProps) {
@@ -20,6 +21,8 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
       todayDateStr: '',
 
       screen: AtiScreen.Home,
+
+      menuOpen: false,
     }
 
     this.setMidnightUpdateTimeout()
@@ -65,11 +68,19 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
       setTimeout(this.goToHome.bind(this), 0)
     }
 
+    let menu
+    if (this.state.menuOpen) {
+      menu = <Menu goToHome={this.goToHome.bind(this)}
+                    goToNewTaskSchedule={this.goToNewTaskSchedule.bind(this)}
+                    goToAllTaskSchedules={this.goToHome.bind(this)} />
+    }
+
     return (
       <div id="around-to-it">
         <h1>Around To It</h1>
         {screen}
-        <a href="#" id="a-round-to-it" onClick={this.goToNewTaskSchedule.bind(this)}>
+        {menu}
+        <a href="#" id="a-round-to-it" onClick={this.toggleMenu.bind(this)}>
           <img src="images/a-round-to-it.png" />
         </a>
       </div>
@@ -78,16 +89,24 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
 
   // navigation
 
-  goToHome(): void {
-    this.setState({ screen: AtiScreen.Home })
+  toggleMenu(): void {
+    this.setState({
+      menuOpen: !this.state.menuOpen
+    })
   }
 
-  goToNewTaskSchedule(event: React.MouseEvent<HTMLAnchorElement>): void {
-    event.preventDefault()
-    if (event.button !== 0) {
-      return
-    }
-    this.setState({ screen: AtiScreen.NewTaskSchedule })
+  goToHome(): void {
+    this.setState({
+      screen: AtiScreen.Home,
+      menuOpen: false,
+    })
+  }
+
+  goToNewTaskSchedule(): void {
+    this.setState({
+      screen: AtiScreen.NewTaskSchedule,
+      menuOpen: false,
+    })
   }
 
   goToEditTaskSchedule(taskSchedule: TaskSchedule): void {
@@ -235,6 +254,8 @@ type AroundToItState = {
 
   screen: AtiScreen
   screenTaskSchedule?: TaskSchedule
+
+  menuOpen: boolean
 }
 
 enum AtiScreen {
