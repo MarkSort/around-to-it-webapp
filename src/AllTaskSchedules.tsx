@@ -2,23 +2,23 @@ import React, { ReactNode } from "react"
 
 import { TaskSchedule, TaskScheduleStatusString, TaskScheduleType } from "./lib"
 
-export default class Home extends React.Component<HomeProps, HomeState> {
-  constructor(props: HomeProps) {
+export default class AllTaskSchedules extends React.Component<AllTaskSchedulesProps, AllTaskSchedulesState> {
+  constructor(props: AllTaskSchedulesProps) {
     super(props)
 
-    const state = Home.getDerivedStateFromProps(props, {
+    const state = AllTaskSchedules.getDerivedStateFromProps(props, {
       moving: false,
       deleting: false,
       taskSchedules: [],
       taskSchedulesByType: {},
     })
 
-    if (state == null) throw new Error('got null initial Home state')
+    if (state == null) throw new Error('got null initial AllTaskSchedules state')
 
     this.state = state
   }
 
-  static getDerivedStateFromProps(props: HomeProps, state: HomeState): HomeState | null {
+  static getDerivedStateFromProps(props: AllTaskSchedulesProps, state: AllTaskSchedulesState): AllTaskSchedulesState | null {
     if (props.taskSchedules === state.taskSchedules) return null
 
     const taskSchedulesByType: {[t: string]: TaskSchedule[]} = {
@@ -27,9 +27,6 @@ export default class Home extends React.Component<HomeProps, HomeState> {
     }
 
     props.taskSchedules.forEach(taskSchedule => {
-      if (!taskSchedule.active) {
-        return
-      }
       const typeString = taskSchedule.type.toString()
       taskSchedulesByType[typeString].push(taskSchedule)
     })
@@ -43,14 +40,10 @@ export default class Home extends React.Component<HomeProps, HomeState> {
   }
 
   render(): ReactNode {
-    if (this.props.taskSchedules.length === 0) {
-      return <div id="no-schedules">at the bottom right, there&apos;s A Round To-It you can use to get started</div>
-    }
-
     const taskScheduleTypes = [TaskScheduleType.Daily, TaskScheduleType.Once]
     const typeLabels = {
-      [TaskScheduleType.Daily.toString()]: { heading: 'daily', empty: 'all done for the day!'},
-      [TaskScheduleType.Once.toString()]: { heading: 'one-time', empty: 'no more one time tasks!'},
+      [TaskScheduleType.Daily.toString()]: 'daily task schedules',
+      [TaskScheduleType.Once.toString()]: 'one time tasks',
     }
 
     const reactNodes: ReactNode[] = []
@@ -58,18 +51,16 @@ export default class Home extends React.Component<HomeProps, HomeState> {
     taskScheduleTypes.forEach((type) => {
       const typeString = type.toString()
 
-      reactNodes.push(<h2 key={`h2-${typeString}`}>{typeLabels[typeString].heading} tasks</h2>)
+      reactNodes.push(<h2 key={`h2-${typeString}`}>{typeLabels[typeString]}</h2>)
 
       if (this.state.taskSchedulesByType[typeString].length === 0) {
-        reactNodes.push(<div key={`empty-${typeString}`}>{typeLabels[typeString].empty}</div>)
+        reactNodes.push(<div key={`empty-${typeString}`}>there are no task schedules of this type</div>)
       }
 
       let afterSelected = false
       let lastOrder = 0
 
       this.state.taskSchedulesByType[typeString].forEach((taskSchedule) => {
-        if (!taskSchedule.active) return
-
         lastOrder = taskSchedule.order
 
         let moveHere
@@ -86,7 +77,6 @@ export default class Home extends React.Component<HomeProps, HomeState> {
 
         let title = taskSchedule.title
         title = `${taskSchedule.id}|${taskSchedule.type} ${taskSchedule.order}|${taskSchedule.typeAndOrder}| ${title}`
-
         let task
         if (this.state.selected?.id != taskSchedule.id) {
           task = <a href="#" onClick={this.getClickHandler(taskSchedule)} key={taskSchedule.id}>{title}</a>
@@ -115,9 +105,15 @@ export default class Home extends React.Component<HomeProps, HomeState> {
               </div>
             )
           } else {
+            let markCompleteOrNot
+            if (taskSchedule.active) {
+              markCompleteOrNot = <a href="#" onClick={this.handleMarkComplete.bind(this)}>mark complete</a>
+            } else  {
+              markCompleteOrNot = <a href="#" onClick={(event) => event.preventDefault()}>mark incomplete</a>
+            }
             actions = (
               <div>
-                <a href="#" onClick={this.handleMarkComplete.bind(this)}>mark complete</a>
+                {markCompleteOrNot}
                 <div id="moreActions">
                   <a href="#" onClick={this.handleStartMove.bind(this)}>move</a>
                   <a href="#" onClick={this.handleEdit.bind(this)}>edit</a>
@@ -256,7 +252,7 @@ export default class Home extends React.Component<HomeProps, HomeState> {
   }
 }
 
-type HomeProps = {
+type AllTaskSchedulesProps = {
   taskSchedules: TaskSchedule[]
   todayDateStr: string
 
@@ -267,7 +263,7 @@ type HomeProps = {
   moveTaskSchedule(type: TaskScheduleType, oldOrder: number, newOrder: number): Promise<void>
 }
 
-type HomeState = {
+type AllTaskSchedulesState = {
   selected?: TaskSchedule
   moving: boolean
   deleting: boolean

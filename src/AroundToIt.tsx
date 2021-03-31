@@ -7,6 +7,7 @@ import EditTaskSchedule from "./EditTaskSchedule"
 import { TaskSchedule, TaskScheduleType, TaskScheduleStatusString } from "./lib"
 import Db from "./Db"
 import Menu from "./Menu"
+import AllTaskSchedules from "./AllTaskSchedules"
 
 export default class AroundToIt extends React.Component<AroundToItProps, AroundToItState> {
   constructor(props: AroundToItProps) {
@@ -21,6 +22,7 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
       todayDateStr: '',
 
       screen: AtiScreen.Home,
+      previousScreen: AtiScreen.Home,
 
       menuOpen: false,
     }
@@ -45,21 +47,33 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
                   moveTaskSchedule={this.moveTaskSchedule.bind(this)}
                 />
 
+    } else if (this.state.screen === AtiScreen.AllTaskSchedules) {
+      screen = <AllTaskSchedules
+                  taskSchedules={this.state.taskSchedules}
+                  todayDateStr={this.state.todayDateStr}
+
+                  goToEditTaskSchedule={this.goToEditTaskSchedule.bind(this)}
+                  
+                  deleteSchedule={this.deleteSchedule.bind(this)}
+                  addTaskScheduleStatus={this.addTaskScheduleStatus.bind(this)}
+                  moveTaskSchedule={this.moveTaskSchedule.bind(this)}
+                />
+
     } else if (this.state.screen === AtiScreen.NewTaskSchedule) {
       screen = <NewTaskSchedule
                   addSchedule={this.addSchedule.bind(this)}
-                  goBack={this.goToHome.bind(this)}
+                  goBack={this.goBack.bind(this)}
                 />
 
     } else if (this.state.screen === AtiScreen.EditTaskSchedule) {
       if (this.state.screenTaskSchedule == null) {
         console.error("invalid state - EditTaskSchedule without screenTaskSchedule")
-        setTimeout(this.goToHome.bind(this), 0)
+        setTimeout(this.goBack.bind(this), 0)
       } else {
         screen = <EditTaskSchedule
                     title={this.state.screenTaskSchedule.title}
                     updateSchedule={this.updateSchedule.bind(this)}
-                    goBack={this.goToHome.bind(this)}
+                    goBack={this.goBack.bind(this)}
                   />
       }
 
@@ -72,7 +86,7 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
     if (this.state.menuOpen) {
       menu = <Menu goToHome={this.goToHome.bind(this)}
                     goToNewTaskSchedule={this.goToNewTaskSchedule.bind(this)}
-                    goToAllTaskSchedules={this.goToHome.bind(this)} />
+                    goToAllTaskSchedules={this.goToAllTaskSchedules.bind(this)} />
     }
 
     return (
@@ -102,17 +116,49 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
     })
   }
 
-  goToNewTaskSchedule(): void {
+  goToAllTaskSchedules(): void {
     this.setState({
-      screen: AtiScreen.NewTaskSchedule,
+      screen: AtiScreen.AllTaskSchedules,
       menuOpen: false,
     })
   }
 
+  goToNewTaskSchedule(): void {
+    if (this.state.screen === AtiScreen.Home || this.state.screen === AtiScreen.AllTaskSchedules) {
+      this.setState({
+        screen: AtiScreen.NewTaskSchedule,
+        menuOpen: false,
+        previousScreen: this.state.screen,
+      })
+    } else {
+      this.setState({
+        screen: AtiScreen.NewTaskSchedule,
+        menuOpen: false,
+      })
+    }
+  }
+
   goToEditTaskSchedule(taskSchedule: TaskSchedule): void {
+    if (this.state.screen === AtiScreen.Home || this.state.screen === AtiScreen.AllTaskSchedules) {
+      this.setState({
+        screen: AtiScreen.EditTaskSchedule,
+        screenTaskSchedule: taskSchedule,
+        menuOpen: false,
+        previousScreen: this.state.screen,
+      })
+    } else {
+      this.setState({
+        screen: AtiScreen.EditTaskSchedule,
+        screenTaskSchedule: taskSchedule,
+        menuOpen: false,
+      })
+    }
+  }
+
+  goBack(): void {
     this.setState({
-      screen: AtiScreen.EditTaskSchedule,
-      screenTaskSchedule: taskSchedule,
+      screen: this.state.previousScreen,
+      previousScreen: AtiScreen.Home,
     })
   }
 
@@ -254,12 +300,14 @@ type AroundToItState = {
 
   screen: AtiScreen
   screenTaskSchedule?: TaskSchedule
+  previousScreen: AtiScreen
 
   menuOpen: boolean
 }
 
 enum AtiScreen {
   Home,
+  AllTaskSchedules,
   NewTaskSchedule,
   EditTaskSchedule,
 }
