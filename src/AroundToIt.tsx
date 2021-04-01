@@ -169,7 +169,6 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
     const taskSchedules = await Promise.all(dbTaskSchedules.map(async (dbTaskSchedule) => {
       if (dbTaskSchedule.id == null) throw new Error("DBTaskSchedule missing id")
       if (dbTaskSchedule.order == null) throw new Error("DBTaskSchedule missing order")
-      if (dbTaskSchedule.typeAndOrder == null) throw new Error("DBTaskSchedule missing typeAndOrder")
 
       let active
       if (dbTaskSchedule.type == TaskScheduleType.Once) {
@@ -185,7 +184,6 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
         title: dbTaskSchedule.title,
         type: dbTaskSchedule.type,
         order: dbTaskSchedule.order,
-        typeAndOrder: dbTaskSchedule.typeAndOrder,
         active, 
       }
     }))

@@ -3,7 +3,6 @@ export type TaskSchedule = {
   title: string
   type: TaskScheduleType
   order: number
-  typeAndOrder: string
   active: boolean
 }
 

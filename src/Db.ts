@@ -20,14 +20,14 @@ export default class Db {
           autoIncrement: true,
         })
         taskScheduleStore.createIndex('by-type', 'type')
-        taskScheduleStore.createIndex('by-typeAndOrder', 'typeAndOrder', {unique: true})
+        taskScheduleStore.createIndex('by-typeAndOrder', ['type', 'order'], { unique: true })
 
         const taskScheduleStatusStore = db.createObjectStore(TaskScheduleStatusesStoreName, {
           autoIncrement: true,
         })
         taskScheduleStatusStore.createIndex('by-id', 'id')
         taskScheduleStatusStore.createIndex('by-changedAt', 'changedAt')
-        taskScheduleStatusStore.createIndex('by-idAndChangedAt', 'idAndChangedAt')
+        taskScheduleStatusStore.createIndex('by-idAndChangedAt', ['id', 'changedAt'])
       },
       blocked() {
         console.warn('openDB blocked')
@@ -61,8 +61,8 @@ export default class Db {
 
   async addTaskSchedule(title: string, type: TaskScheduleType): Promise<void> {
     const range = IDBKeyRange.bound(
-      `${type} 0`,
-      `${type + 1} 0`,
+      [type, 0],
+      [type + 1, 0],
       false,
       true,
     )
@@ -82,7 +82,6 @@ export default class Db {
       title,
       type,
       order,
-      typeAndOrder: `${type} ${order}`
     }
     await store.add(dbTaskSchedule)
   }
@@ -91,8 +90,8 @@ export default class Db {
     if (oldOrder === newOrder) throw new Error('oldOrder === newOrder')
 
     const tempOrderRange = IDBKeyRange.bound(
-      `${type} 0`,
-      `${type + 1} 0`,
+      [type, 0],
+      [type + 1, 0],
       false,
       true,
     )
@@ -104,12 +103,11 @@ export default class Db {
 
     const lastOrder = lastTaskSchedule.value.order
 
-    const taskSchedule = await store.index('by-typeAndOrder').get(`${type} ${oldOrder}`)
+    const taskSchedule = await store.index('by-typeAndOrder').get([type, oldOrder])
     if (taskSchedule == null) throw new Error('could not find TaskSchedule to move')
 
     if (oldOrder !== lastOrder) {
       taskSchedule.order = lastOrder + 1
-      taskSchedule.typeAndOrder = `${type} ${lastOrder + 1}`
       await store.put(taskSchedule)
     }
 
@@ -127,8 +125,8 @@ export default class Db {
       direction = 'next'
       orderChange = -1
       otherTaskSchedulesRange = IDBKeyRange.bound(
-        `${type} ${oldOrder}`,
-        `${type} ${newOrder}`,
+        [type, oldOrder],
+        [type, newOrder],
       )
     } else {
       /*
@@ -150,8 +148,8 @@ export default class Db {
       direction = 'prev'
       orderChange = 1
       otherTaskSchedulesRange = IDBKeyRange.bound(
-        `${type} ${newOrder}`,
-        `${type} ${oldOrder}`,
+        [type, newOrder],
+        [type, oldOrder],
       )
     }
 
@@ -166,12 +164,10 @@ export default class Db {
       const taskScheduleToUpdate = taskSchedulesToUpdate[i]
       if (taskScheduleToUpdate.order == null) throw new Error('taskSchedule missing order')
       taskScheduleToUpdate.order += orderChange
-      taskScheduleToUpdate.typeAndOrder = `${type} ${taskScheduleToUpdate.order}`
       await store.put(taskScheduleToUpdate)
     }
 
     taskSchedule.order = newOrder
-    taskSchedule.typeAndOrder = `${type} ${newOrder}`
     await store.put(taskSchedule)
   }
 
@@ -190,7 +186,6 @@ export default class Db {
     const dbTaskScheduleStatus = {
       id,
       changedAt,
-      idAndChangedAt: `${id} ${changedAt.valueOf()}`,
       status
     }
     await this.db.add(TaskScheduleStatusesStoreName, dbTaskScheduleStatus)
@@ -211,8 +206,8 @@ export default class Db {
     nextDay.setDate(nextDay.getDate() + 1)
 
     const range = IDBKeyRange.bound(
-      `${id} ${day.valueOf()}`,
-      `${id} ${nextDay.valueOf()}`,
+      [id, day],
+      [id, nextDay],
       false,
       true
     )
@@ -230,7 +225,7 @@ interface AtiDBSchema extends DBSchema {
     value: DBTaskSchedule
     indexes: {
       'by-type': TaskScheduleType
-      'by-typeAndOrder': string
+      'by-typeAndOrder': [TaskScheduleType, number]
     }
   },
   [TaskScheduleStatusesStoreName]: {
@@ -239,7 +234,7 @@ interface AtiDBSchema extends DBSchema {
     indexes: {
       'by-id': number // example: find all changes for a certain taskSchedule
       'by-changedAt': Date // example: find all taskSchedules changed today
-      'by-idAndChangedAt': string // example: find if certain taskSchedule changed today
+      'by-idAndChangedAt': [number, Date] // example: find if certain taskSchedule changed today
     }
   }
 }
@@ -249,12 +244,10 @@ type DBTaskSchedule = {
   title: string
   type: TaskScheduleType
   order?: number
-  typeAndOrder?: string
 }
 
 type DBTaskScheduleStatus = {
   id: number
   changedAt: Date
-  idAndChangedAt: string
   status: TaskScheduleStatusString
 }
