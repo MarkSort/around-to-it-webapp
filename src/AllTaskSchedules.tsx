@@ -43,7 +43,7 @@ export default class AllTaskSchedules extends React.Component<AllTaskSchedulesPr
     const taskScheduleTypes = [TaskScheduleType.Daily, TaskScheduleType.Once]
     const typeLabels = {
       [TaskScheduleType.Daily.toString()]: 'daily task schedules',
-      [TaskScheduleType.Once.toString()]: 'one time tasks',
+      [TaskScheduleType.Once.toString()]: 'one-time tasks',
     }
 
     const reactNodes: ReactNode[] = []
