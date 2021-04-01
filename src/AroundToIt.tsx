@@ -260,7 +260,7 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
     return `${year}-${month}-${day}`
   }
 
-  setMidnightUpdateTimeout() {
+  setMidnightUpdateTimeout(): void {
 
     const midnight = new Date()
     midnight.setDate(midnight.getDate() + 1)
@@ -278,7 +278,7 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
     setTimeout(this.updateDateStr.bind(this), msUntilMidnight)
   }
 
-  async updateDateStr() {
+  async updateDateStr(): Promise<void> {
     const now = new Date()
     console.log(`midnight update fired at ${now.toString()}`)
 
