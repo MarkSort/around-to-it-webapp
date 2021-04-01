@@ -89,8 +89,8 @@ export default class Home extends React.Component<HomeProps, HomeState> {
             </a>
         }
 
-        let title = taskSchedule.title
-        title = `${taskSchedule.id}|${taskSchedule.type}|${taskSchedule.order}| ${title}`
+        const title = taskSchedule.title
+        //const title = `${taskSchedule.id}|${taskSchedule.type}|${taskSchedule.order}| ${title}`
 
         let task
         if (this.state.selected?.id != taskSchedule.id) {

@@ -75,8 +75,9 @@ export default class AllTaskSchedules extends React.Component<AllTaskSchedulesPr
             </a>
         }
 
-        let title = taskSchedule.title
-        title = `${taskSchedule.id}|${taskSchedule.type}|${taskSchedule.order}| ${title}`
+        const title = taskSchedule.title
+        //const title = `${taskSchedule.id}|${taskSchedule.type}|${taskSchedule.order}| ${title}`
+
         let task
         if (this.state.selected?.id != taskSchedule.id) {
           task = <a href="#" onClick={this.getClickHandler(taskSchedule)} key={taskSchedule.id}>{title}</a>
