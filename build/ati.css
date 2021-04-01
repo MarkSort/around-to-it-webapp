@@ -115,3 +115,11 @@ input[type="submit"] {
   padding: 10px 20px;
   margin-top: 20px;
 }
+
+form button {
+  display: block;
+  margin: 20px auto 40px;
+  min-width: 50%;
+  font-size: 150%;
+  padding: 15px;
+}

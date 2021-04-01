@@ -30,7 +30,9 @@ export default class NewTaskSchedule extends React.Component<NewTaskScheduleProp
             </select>
           </label></div>
           {error}
-          <input type="submit" value="schedule" disabled={this.state.submitting || this.state.error != null} />
+          <button onClick={this.handleSubmitButton.bind(this)}
+                  disabled={this.state.submitting || this.state.error != null}>save</button>
+          <button onClick={this.props.goBack}>cancel</button>
         </form>
       </div>
     )
@@ -65,6 +67,15 @@ export default class NewTaskSchedule extends React.Component<NewTaskScheduleProp
 
   async handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault()
+    await this.submit()
+  }
+
+  async handleSubmitButton(event: React.MouseEvent<HTMLButtonElement>): Promise<void> {
+    event.preventDefault()
+    await this.submit()
+  }
+  
+  async submit(): Promise<void> {
     this.setState({ submitting: true })
 
     const title = this.state.title.trim()
