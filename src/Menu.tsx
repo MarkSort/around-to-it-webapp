@@ -5,10 +5,20 @@ export default class Menu extends React.Component<MenuProps, MenuState> {
     super(props)
 
     this.state = {
+      versionClicks: 0,
+      debug: false,
     }
   }
 
   render(): ReactNode {
+    let debug
+    if (this.state.debug) {
+      debug = (
+        <div id="debugMenu">
+          debug
+        </div>
+      )
+    }
     return (
       <div id="menu">
           <h1>Around To It</h1>
@@ -16,6 +26,7 @@ export default class Menu extends React.Component<MenuProps, MenuState> {
           <a href="#" onClick={this.goToNewTaskSchedule.bind(this)} >new task schedule</a>
           <a href="#" onClick={this.goToAllTaskSchedules.bind(this)} >view all task schedules</a>
           <div id="version">v1.0</div>
+          {debug}
       </div>
     )
   }
@@ -34,6 +45,28 @@ export default class Menu extends React.Component<MenuProps, MenuState> {
     event.preventDefault()
     this.props.goToAllTaskSchedules()
   }
+
+  handleVersionClick(event: React.MouseEvent<HTMLDivElement>): void {
+    if (this.state.debug) {
+      event.preventDefault()
+      this.setState({
+        versionClicks: 0,
+        debug: false,
+      })
+    } else if (this.state.versionClicks < 4) { 
+      this.setState({
+        versionClicks: this.state.versionClicks + 1,
+        debug: false,
+      })
+    } else {
+      event.preventDefault()
+      this.setState({
+        versionClicks: 0,
+        debug: true,
+      })
+    }
+  }
+
 }
 
 type MenuProps = {
@@ -43,4 +76,6 @@ type MenuProps = {
 }
 
 type MenuState = {
+  versionClicks: number
+  debug: boolean
 }
