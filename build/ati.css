@@ -25,6 +25,13 @@ a {
   min-height: 100%;
 }
 
+#version {
+  font-family: monospace;
+  margin-top: 20px;
+  font-size: 130%;
+  padding: 20px 0;
+}
+
 #menu a, #tasks a {
   display: block;
   font-size: 150%;
