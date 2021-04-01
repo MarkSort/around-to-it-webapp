@@ -172,6 +172,8 @@ export default class Db {
   }
 
   async updateTaskSchedule(taskSchedule: DBTaskSchedule): Promise<void> {
+    if (taskSchedule.id == null) return
+    if (taskSchedule.order == null) return
     await this.db.put(TaskSchedulesStoreName, taskSchedule)
   }
 

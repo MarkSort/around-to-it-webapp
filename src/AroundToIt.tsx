@@ -228,6 +228,7 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
       id: this.state.screenTaskSchedule.id,
       title,
       type: this.state.screenTaskSchedule.type,
+      order: this.state.screenTaskSchedule.order,
     })
     await this.updateStateFromDb()
   }
