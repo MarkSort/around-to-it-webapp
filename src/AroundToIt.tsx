@@ -105,7 +105,8 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
 
   // navigation
 
-  toggleMenu(): void {
+  toggleMenu(event: React.MouseEvent<HTMLAnchorElement>): void {
+    event.preventDefault()
     this.setState({
       menuOpen: !this.state.menuOpen
     })
