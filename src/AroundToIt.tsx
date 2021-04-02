@@ -19,6 +19,8 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
       loading: true,
 
       taskSchedules: [],
+
+      todayDate: new Date(),
       todayDateStr: '',
 
       screen: AtiScreen.Home,
@@ -56,6 +58,7 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
                   
                   deleteSchedule={this.deleteSchedule.bind(this)}
                   addTaskScheduleStatus={this.addTaskScheduleStatus.bind(this)}
+                  deleteTaskScheduleStatuses={this.deleteTaskScheduleStatuses.bind(this)}
                   moveTaskSchedule={this.moveTaskSchedule.bind(this)}
                 />
 
@@ -164,7 +167,8 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
   // db
 
   async updateStateFromDb(): Promise<void> {
-    const todayDateStr = this.getDateStr()
+    const todayDate = new Date()
+    const todayDateStr = this.getDateStr(todayDate)
     const dbTaskSchedules = await this.props.db.getAllTaskSchedules()
     const taskSchedules = await Promise.all(dbTaskSchedules.map(async (dbTaskSchedule) => {
       if (dbTaskSchedule.id == null) throw new Error("DBTaskSchedule missing id")
@@ -174,7 +178,7 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
       if (dbTaskSchedule.type == TaskScheduleType.Once) {
         active = await this.props.db.getTaskScheduleStatus(dbTaskSchedule.id) == null
       } else if (dbTaskSchedule.type == TaskScheduleType.Daily) {
-        active = await this.props.db.getTodayTaskScheduleStatus(dbTaskSchedule.id) == null
+        active = await this.props.db.getTodayTaskScheduleStatus(dbTaskSchedule.id, todayDate) == null
       } else {
         active = false
       }
@@ -191,6 +195,7 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
     this.setState({
       loading: false,
       taskSchedules,
+      todayDate,
       todayDateStr,
     })
   }
@@ -240,6 +245,15 @@ export default class AroundToIt extends React.Component<AroundToItProps, AroundT
 
   async addTaskScheduleStatus(id: number, status: TaskScheduleStatusString): Promise<void> {
     await this.props.db.addTaskScheduleStatus(id, status)
+    await this.updateStateFromDb()
+  }
+
+  async deleteTaskScheduleStatuses(taskSchedule: TaskSchedule): Promise<void> {
+    if (taskSchedule.type == TaskScheduleType.Once) {
+      await this.props.db.deleteAllTaskScheduleStatuses(taskSchedule.id)
+    } else if (taskSchedule.type == TaskScheduleType.Daily) {
+      await this.props.db.deleteTodayTaskScheduleStatuses(this.state.todayDate, taskSchedule.id)
+    }
     await this.updateStateFromDb()
   }
 
@@ -294,6 +308,8 @@ type AroundToItProps = {
 type AroundToItState = {
   loading: boolean
   taskSchedules: TaskSchedule[]
+
+  todayDate: Date
   todayDateStr: string
 
   screen: AtiScreen

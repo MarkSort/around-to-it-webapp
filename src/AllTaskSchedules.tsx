@@ -110,7 +110,7 @@ export default class AllTaskSchedules extends React.Component<AllTaskSchedulesPr
             if (taskSchedule.active) {
               markCompleteOrNot = <a href="#" onClick={this.handleMarkComplete.bind(this)}>mark complete</a>
             } else  {
-              markCompleteOrNot = <a href="#" onClick={(event) => event.preventDefault()}>mark incomplete</a>
+              markCompleteOrNot = <a href="#" onClick={this.handleMarkIncomplete.bind(this)}>mark incomplete</a>
             }
             actions = (
               <div>
@@ -182,6 +182,18 @@ export default class AllTaskSchedules extends React.Component<AllTaskSchedulesPr
       selected: undefined,
     })
     await this.props.addTaskScheduleStatus(id, 'completed')
+  }
+
+  async handleMarkIncomplete(event: React.MouseEvent<HTMLAnchorElement>): Promise<void> {
+    event.preventDefault()
+
+    const taskSchedule = this.state.selected
+    if (taskSchedule == null) return
+
+    this.setState({
+      selected: undefined,
+    })
+    await this.props.deleteTaskScheduleStatuses(taskSchedule)
   }
 
   handleStartMove(event: React.MouseEvent<HTMLAnchorElement>): void {
@@ -261,6 +273,7 @@ type AllTaskSchedulesProps = {
 
   deleteSchedule(id: number): Promise<void>
   addTaskScheduleStatus(id: number, status: TaskScheduleStatusString): Promise<void>
+  deleteTaskScheduleStatuses(taskSchedule: TaskSchedule): Promise<void>
   moveTaskSchedule(type: TaskScheduleType, oldOrder: number, newOrder: number): Promise<void>
 }
 

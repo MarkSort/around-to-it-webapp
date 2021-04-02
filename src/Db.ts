@@ -197,23 +197,63 @@ export default class Db {
     return this.db.transaction(TaskScheduleStatusesStoreName).store.index('by-id').get(id)
   }
 
-  async getTodayTaskScheduleStatus(id: number/*, day: Date*/): Promise<DBTaskScheduleStatus | undefined> {
-    /* TODO */ const day = new Date()
-    day.setHours(0)
-    day.setMinutes(0)
-    day.setSeconds(0)
-    day.setMilliseconds(0)
-
-    const nextDay = new Date(day.valueOf())
-    nextDay.setDate(nextDay.getDate() + 1)
+  async getTodayTaskScheduleStatus(id: number, day: Date): Promise<DBTaskScheduleStatus | undefined> {
+    const dayRange = this.getMidnightAndNextDay(day)
 
     const range = IDBKeyRange.bound(
-      [id, day],
-      [id, nextDay],
+      [id, dayRange.start],
+      [id, dayRange.end],
       false,
       true
     )
     return this.db.transaction(TaskScheduleStatusesStoreName).store.index('by-idAndChangedAt').get(range)
+  }
+
+  async deleteAllTaskScheduleStatuses(id: number): Promise<void> {
+    const store = this.db.transaction(TaskScheduleStatusesStoreName, 'readwrite').store
+
+    // was an old comment, but safari may be buggy if you delete keys from a cursor?
+    // getAllKeys instead
+    const keysToDelete = await store.index('by-id').getAllKeys(id)
+
+    for (let i = 0; i < keysToDelete.length; i++) {
+      await store.delete(keysToDelete[i])
+    }
+  }
+
+  async deleteTodayTaskScheduleStatuses(day: Date, id: number): Promise<void> {
+    const dayRange = this.getMidnightAndNextDay(day)
+
+    const range = IDBKeyRange.bound(
+      [id, dayRange.start],
+      [id, dayRange.end],
+      false,
+      true
+    )
+
+    const store = this.db.transaction(TaskScheduleStatusesStoreName, 'readwrite').store
+
+    // was an old comment, but safari may be buggy if you delete keys from a cursor?
+    // getAllKeys instead
+    const keysToDelete = await store.index('by-idAndChangedAt').getAllKeys(range)
+
+    for (let i = 0; i < keysToDelete.length; i++) {
+      await store.delete(keysToDelete[i])
+    }
+
+  }
+
+  getMidnightAndNextDay(day: Date): SingleDay {
+    const start = new Date(day.valueOf())
+    start.setHours(0)
+    start.setMinutes(0)
+    start.setSeconds(0)
+    start.setMilliseconds(0)
+
+    const end = new Date(start.valueOf())
+    end.setDate(end.getDate() + 1)
+
+    return { start, end }
   }
 
 }
@@ -252,4 +292,9 @@ type DBTaskScheduleStatus = {
   id: number
   changedAt: Date
   status: TaskScheduleStatusString
+}
+
+type SingleDay = {
+  start: Date
+  end: Date
 }
