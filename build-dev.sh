@@ -1,4 +1,3 @@
 #!/bin/bash -e
-./node_modules/.bin/webpack --mode development
-cp -v serve.py /mnt/c/mark/dev/ati17/
-cp -vr build /mnt/c/mark/dev/ati17/
+cd "$(dirname "$0")"
+NODE_OPTIONS=--openssl-legacy-provider ./node_modules/.bin/webpack --mode development
