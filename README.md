@@ -2,6 +2,10 @@
 
 A basic task list app using TypeScript, React, and IndexedDB.  Currently it does not sync data outside of the current browser and the layout is only ideal for mobile device in portrait rotation.
 
+## Try It
+
+[https://aroundtoit.marksort.com/](https://aroundtoit.marksort.com/)
+
 ## Running
 
 ``` bash
